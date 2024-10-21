@@ -60,7 +60,11 @@ app.get('/rollup-genres', (req, res) => {
     `;
     db.query(query, (err, results) => {
         if (err) throw err;
-        res.json(results);
+        res.json(results.map(row => ({
+            genres: row.genres,
+            game_count: row.game_count,
+            total_owners: row.total_owners
+        })));
     });
 });
 
@@ -76,11 +80,12 @@ app.get('/drilldown-games-by-genre', (req, res) => {
     `;
     db.query(query, (err, results) => {
         if (err) throw err;
-        res.json(results);
+        res.json(results.map(row => ({
+            genres: row.genres,
+            Total_Games: row.Total_Games
+        })));
     });
 });
-
-
 
 // OLAP Query 3: Slice (Filter by peak concurrent users above 10,000)
 app.get('/slice-peak-ccu', (req, res) => {
@@ -92,7 +97,12 @@ app.get('/slice-peak-ccu', (req, res) => {
     `;
     db.query(query, (err, results) => {
         if (err) throw err;
-        res.json(results);
+        res.json(results.map(row => ({
+            Name: row.Name,
+            peak_ccu: row.peak_ccu,
+            estimated_owners: row.estimated_owners,
+            metacritic_score: row.metacritic_score
+        })));
     });
 });
 
@@ -108,6 +118,11 @@ app.get('/dice-genre-metacritic', (req, res) => {
     `;
     db.query(query, (err, results) => {
         if (err) throw err;
-        res.json(results);
+        res.json(results.map(row => ({
+            Name: row.Name,
+            genres: row.genres,
+            metacritic_score: row.metacritic_score,
+            price: row.price
+        })));
     });
 });

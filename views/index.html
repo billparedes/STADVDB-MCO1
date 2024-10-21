@@ -4,55 +4,165 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Steam Games OLAP Dashboard</title>
-    <link rel="stylesheet" href="/styles.css"> <!-- Ensure correct path to your CSS -->
+    <link rel="stylesheet" href="/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+
     <h1>Steam Games OLAP Dashboard</h1>
 
-    <button id="rollupGenresButton">Roll-up: Genre Analysis</button>
-    <button id="drilldownMetacriticButton">Drill-down: Games by Genre in 2023</button>
-    <button id="slicePeakCCUButton">Slice: High Peak Concurrent Users</button>
-    <button id="diceGenreMetacriticButton">Dice: Action Games with 80-90 Metacritic</button>
+    <div class="chart-buttons">
+        <button id="rollupGenresButton">Roll-up: Games by Genre</button>
+        <button id="drilldownGamesByGenreButton">Drill-down: Games by Genre (2023)</button>
+        <button id="slicePeakCCUButton">Slice: Peak CCU > 10,000</button>
+        <button id="diceGenreMetacriticButton">Dice: Action Games with Metacritic 80-90</button>
+    </div>
 
-    <div id="results"></div>
+    <div id="chartTableContainer">
+        <!-- Chart Section -->
+        <div id="chartContainer">
+            <canvas id="olapChart"></canvas>
+        </div>
+
+        <!-- Table Section -->
+        <div id="tableContainer">
+            <table id="olapTable">
+                <!-- Table will be dynamically generated here -->
+            </table>
+        </div>
+    </div>
 
     <script>
-        const displayResults = (data) => {
-            let output = '<table><tr>';
-            Object.keys(data[0]).forEach(key => output += `<th>${key}</th>`);
-            output += '</tr>';
-            data.forEach(row => {
-                output += '<tr>';
-                Object.values(row).forEach(value => output += `<td>${value}</td>`);
-                output += '</tr>';
-            });
-            output += '</table>';
-            document.getElementById('results').innerHTML = output;
-        };
+        let chartInstance = null;
 
+        // function to display the chart
+        function displayChart(labels, data, title, chartType) {
+            const ctx = document.getElementById('olapChart').getContext('2d');
+
+            if (chartInstance) {
+                chartInstance.destroy(); 
+            }
+
+            chartInstance = new Chart(ctx, {
+                type: chartType,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: title,
+                        data: data,
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // function to display table data
+        function displayTable(headers, data) {
+            const table = document.getElementById('olapTable');
+            table.innerHTML = ''; 
+
+            const headerRow = document.createElement('tr');
+            headers.forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header;
+                headerRow.appendChild(th);
+            });
+            table.appendChild(headerRow);
+
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                Object.values(row).forEach(value => {
+                    const td = document.createElement('td');
+                    td.textContent = value;
+                    tr.appendChild(td);
+                });
+                table.appendChild(tr);
+            });
+        }
+
+        // fetch and handle Roll-up (Games by Genre)
         document.getElementById('rollupGenresButton').addEventListener('click', () => {
             fetch('/rollup-genres')
                 .then(response => response.json())
-                .then(data => displayResults(data));
+                .then(data => {
+                    const labels = data.map(item => item.genres);
+                    const gameCounts = data.map(item => item.game_count);
+
+                    // display the chart
+                    displayChart(labels, gameCounts, 'Games by Genre', 'bar');
+
+                    // display the table
+                    const headers = ['Genres', 'Game Count', 'Total Owners'];
+                    displayTable(headers, data);
+                });
         });
 
-        document.getElementById('drilldownMetacriticButton').addEventListener('click', () => {
+        // fetch and handle Drill-down (Games by Genre in 2023)
+        document.getElementById('drilldownGamesByGenreButton').addEventListener('click', () => {
             fetch('/drilldown-games-by-genre')
                 .then(response => response.json())
-                .then(data => displayResults(data));
+                .then(data => {
+                    const labels = data.map(item => item.genres);
+                    const gameCounts = data.map(item => item.Total_Games);
+
+                    // display the line chart
+                    displayChart(labels, gameCounts, 'Games by Genre in 2023', 'line');
+
+                    // display the table
+                    const headers = ['Genres', 'Total Games'];
+                    displayTable(headers, data);
+                });
         });
 
+        // fetch and handle Slice (Peak CCU > 10,000)
         document.getElementById('slicePeakCCUButton').addEventListener('click', () => {
             fetch('/slice-peak-ccu')
                 .then(response => response.json())
-                .then(data => displayResults(data));
+                .then(data => {
+                    const labels = data.map(item => item.Name);
+                    const peakCCU = data.map(item => item.peak_ccu);
+
+                    // display the chart
+                    displayChart(labels, peakCCU, 'Peak CCU > 10,000', 'bar');
+
+                    // display the table
+                    const headers = ['Name', 'Peak CCU', 'Estimated Owners', 'Metacritic Score'];
+                    displayTable(headers, data);
+                });
         });
 
+        // fetch and handle Dice (Action Games with Metacritic Score 80-90)
         document.getElementById('diceGenreMetacriticButton').addEventListener('click', () => {
             fetch('/dice-genre-metacritic')
                 .then(response => response.json())
-                .then(data => displayResults(data));
+                .then(data => {
+                    const labels = data.map(item => item.Name);
+                    const metacriticScores = data.map(item => item.metacritic_score);
+
+                    // display the chart
+                    displayChart(labels, metacriticScores, 'Action Games Metacritic 80-90', 'bar');
+
+                    // display the table
+                    const headers = ['Name', 'Genres', 'Metacritic Score', 'Price'];
+                    displayTable(headers, data);
+                });
         });
     </script>
+
 </body>
+
 </html>

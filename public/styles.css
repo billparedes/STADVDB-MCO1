@@ -36,61 +36,8 @@ button:hover {
 }
 
 button:active {
-    background-color: #006bb3; 
-}
-
-#results {
-    margin-top: 40px;
-    padding: 20px;
-    width: 80%;
-    margin-left: auto;
-    margin-right: auto;
-    border-radius: 15px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); 
-    background-color: white;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-    border-radius: 10px; /* Rounded corners */
-    overflow: hidden; /* Ensures the border radius is applied */
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); /* Shadow for table */
-}
-
-th, td {
-    padding: 12px 15px;
-    text-align: left;
-    border-bottom: 1px solid #e2e8f0;
-}
-
-th {
-    background-color: #e6f0f3; /* Light teal for header */
-    color: #333;
-    text-transform: uppercase;
-    font-size: 0.85em;
-    letter-spacing: 0.05em;
-    position: sticky; /* Sticky header */
-    top: 0; /* Sticks to the top */
-    z-index: 10; /* Ensures header is above other content */
-}
-
-td {
-    background-color: white;
-    transition: background-color 0.3s; /* Smooth transition for hover */
-}
-
-tr:hover td {
-    background-color: #f1f3f5; 
-}
-
-tr:nth-child(even) td {
-    background-color: #f9f9f9; /* Alternate row color for readability */
-}
-
-tr:nth-child(odd) td {
-    background-color: white; /* Ensure odd rows remain white */
+    background-color: #FEF9F2; 
+    color: black;
 }
 
 @media (max-width: 600px) {
@@ -105,4 +52,47 @@ tr:nth-child(odd) td {
     h1 {
         font-size: 2em; 
     }
+}
+
+#chartTableContainer {
+    display: flex;
+    justify-content: space-between;
+    margin: 0 auto;
+    width: 90%;
+}
+
+#chartContainer {
+    width: 60%;
+}
+
+#tableContainer {
+    width: 40%;
+    margin-left: 20px;
+    max-height: 600px; 
+    overflow-y: auto; 
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 12px;
+}
+
+table, th, td {
+    border: 1px solid #ddd;
+}
+
+th, td {
+    padding: 8px;
+    text-align: left;
+}
+
+th {
+    background-color: #f2f2f2;
+}
+
+.chart-buttons {
+    text-align: center;
+    margin: 20px 0;
 }
