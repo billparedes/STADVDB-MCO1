@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steam Games OLAP Dashboard</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <h1>Steam Games OLAP Dashboard</h1>
+
+    <button id="rollupGenresButton">Roll-up: Genre Analysis</button>
+    <button id="drilldownMetacriticButton">Drill-down: Metacritic Scores by Genre</button>
+    <button id="slicePeakCCUButton">Slice: High Peak Concurrent Users</button>
+    <button id="diceGenreMetacriticButton">Dice: Action Games with 80-90 Metacritic</button>
+
+    <div id="results"></div>
+
+    <script>
+        const displayResults = (data) => {
+            let output = '<table><tr>';
+            Object.keys(data[0]).forEach(key => output += `<th>${key}</th>`);
+            output += '</tr>';
+            data.forEach(row => {
+                output += '<tr>';
+                Object.values(row).forEach(value => output += `<td>${value}</td>`);
+                output += '</tr>';
+            });
+            output += '</table>';
+            document.getElementById('results').innerHTML = output;
+        };
+
+        document.getElementById('rollupGenresButton').addEventListener('click', () => {
+            fetch('/rollup-genres')
+                .then(response => response.json())
+                .then(data => displayResults(data));
+        });
+
+        document.getElementById('drilldownMetacriticButton').addEventListener('click', () => {
+            fetch('/drilldown-metacritic')
+                .then(response => response.json())
+                .then(data => displayResults(data));
+        });
+
+        document.getElementById('slicePeakCCUButton').addEventListener('click', () => {
+            fetch('/slice-peak-ccu')
+                .then(response => response.json())
+                .then(data => displayResults(data));
+        });
+
+        document.getElementById('diceGenreMetacriticButton').addEventListener('click', () => {
+            fetch('/dice-genre-metacritic')
+                .then(response => response.json())
+                .then(data => displayResults(data));
+        });
+    </script>
+</body>
+</html>
