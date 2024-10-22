@@ -64,21 +64,23 @@ app.get('/rollup-genres', (req, res) => {
     });
 });
 
-// OLAP Query 2: Drill-down Query (Metacritic score breakdown by genre)
-app.get('/drilldown-metacritic', (req, res) => {
+// OLAP Query 2: Drill-down Query (Number of games by genre for a specific year)
+app.get('/drilldown-games-by-genre', (req, res) => {
     const query = `
-        SELECT g.genres, gf.metacritic_score, COUNT(gf.appid) AS game_count
+        SELECT g.genres, COUNT(gf.appid) AS Total_Games
         FROM Game_Facts gf
         JOIN Game_Genres gg ON gf.appid = gg.appid
         JOIN Genres g ON gg.GenreID = g.GenreID
-        GROUP BY g.genres, gf.metacritic_score
-        ORDER BY g.genres, gf.metacritic_score DESC;
+        WHERE YEAR(gf.release_date) = 2023
+        GROUP BY g.genres;
     `;
     db.query(query, (err, results) => {
         if (err) throw err;
         res.json(results);
     });
 });
+
+
 
 // OLAP Query 3: Slice (Filter by peak concurrent users above 10,000)
 app.get('/slice-peak-ccu', (req, res) => {

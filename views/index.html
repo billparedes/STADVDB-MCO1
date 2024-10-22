@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Steam Games OLAP Dashboard</title>
-    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/styles.css"> <!-- Ensure correct path to your CSS -->
 </head>
 <body>
     <h1>Steam Games OLAP Dashboard</h1>
 
     <button id="rollupGenresButton">Roll-up: Genre Analysis</button>
-    <button id="drilldownMetacriticButton">Drill-down: Metacritic Scores by Genre</button>
+    <button id="drilldownMetacriticButton">Drill-down: Games by Genre in 2023</button>
     <button id="slicePeakCCUButton">Slice: High Peak Concurrent Users</button>
     <button id="diceGenreMetacriticButton">Dice: Action Games with 80-90 Metacritic</button>
 
@@ -37,7 +37,7 @@
         });
 
         document.getElementById('drilldownMetacriticButton').addEventListener('click', () => {
-            fetch('/drilldown-metacritic')
+            fetch('/drilldown-games-by-genre')
                 .then(response => response.json())
                 .then(data => displayResults(data));
         });
