@@ -48,81 +48,148 @@ app.listen(PORT, () => {
 
 
 
-// OLAP Query 1: Roll-up Query (Group by Genre)
+// OLAP Query 1: Roll-up Query
 app.get('/rollup-genres', (req, res) => {
+    console.time('Rollup Query: ');
     const query = `
-        SELECT g.genres, COUNT(gf.appid) AS game_count, SUM(gf.estimated_owners) AS total_owners
+        SELECT c.categories, g.genres, 
+               COUNT(gf.appid) AS total_games, 
+               AVG(gf.price) AS avg_price, 
+               SUM(gf.estimated_owners) AS total_estimated_owners,
+               SUM(gf.positive) AS total_positive_reviews,
+               SUM(gf.negative) AS total_negative_reviews
         FROM Game_Facts gf
+        JOIN Game_Categories gc ON gf.appid = gc.appid
+        JOIN Categories c ON gc.CategoryID = c.CategoryID
         JOIN Game_Genres gg ON gf.appid = gg.appid
         JOIN Genres g ON gg.GenreID = g.GenreID
-        GROUP BY g.genres
-        ORDER BY total_owners DESC;
+        GROUP BY c.categories, g.genres
+        ORDER BY c.categories, g.genres;
     `;
     db.query(query, (err, results) => {
+        console.timeEnd('Rollup Query: ');
         if (err) throw err;
         res.json(results.map(row => ({
-            genres: row.genres,
-            game_count: row.game_count,
-            total_owners: row.total_owners
+            category: row.categories,
+            genre: row.genres,
+            total_games: row.total_games,
+            avg_price: row.avg_price,
+            total_estimated_owners: row.total_estimated_owners,
+            total_positive_reviews: row.total_positive_reviews,
+            total_negative_reviews: row.total_negative_reviews
         })));
     });
 });
 
-// OLAP Query 2: Drill-down Query (Number of games by genre for a specific year)
+// OLAP Query 2: Drill-down Query
 app.get('/drilldown-games-by-genre', (req, res) => {
+    console.time('Drilldown Query: ');
     const query = `
-        SELECT g.genres, COUNT(gf.appid) AS Total_Games
+        SELECT gf.Name, g.genres, c.categories, l.supported_languages, os.os, 
+               gf.peak_ccu, gf.metacritic_score, gf.release_date, gf.dlc_count
         FROM Game_Facts gf
+        JOIN Game_Categories gc ON gf.appid = gc.appid
+        JOIN Categories c ON gc.CategoryID = c.CategoryID
         JOIN Game_Genres gg ON gf.appid = gg.appid
         JOIN Genres g ON gg.GenreID = g.GenreID
-        WHERE YEAR(gf.release_date) = 2023
-        GROUP BY g.genres;
-    `;
-    db.query(query, (err, results) => {
-        if (err) throw err;
-        res.json(results.map(row => ({
-            genres: row.genres,
-            Total_Games: row.Total_Games
-        })));
-    });
-});
-
-// OLAP Query 3: Slice (Filter by peak concurrent users above 10,000)
-app.get('/slice-peak-ccu', (req, res) => {
-    const query = `
-        SELECT gf.Name, gf.peak_ccu, gf.estimated_owners, gf.metacritic_score
-        FROM Game_Facts gf
-        WHERE gf.peak_ccu > 10000
+        JOIN Game_Languages gl ON gf.appid = gl.appid
+        JOIN Languages l ON gl.LanguageID = l.LanguageID
+        JOIN Game_Operating_Systems gos ON gf.appid = gos.appid
+        JOIN Operating_Systems os ON gos.osid = os.osid
+        WHERE c.categories = 'Multiplayer' AND g.genres = 'Action'
         ORDER BY gf.peak_ccu DESC;
     `;
     db.query(query, (err, results) => {
+        console.timeEnd('Drilldown Query: ');
         if (err) throw err;
         res.json(results.map(row => ({
-            Name: row.Name,
+            name: row.Name,
+            genre: row.genres,
+            category: row.categories,
+            languages: row.supported_languages,
+            os: row.os,
             peak_ccu: row.peak_ccu,
-            estimated_owners: row.estimated_owners,
-            metacritic_score: row.metacritic_score
+            metacritic_score: row.metacritic_score,
+            release_date: row.release_date,
+            dlc_count: row.dlc_count
         })));
     });
 });
 
-// OLAP Query 4: Dice (Filter by genre and metacritic score range)
-app.get('/dice-genre-metacritic', (req, res) => {
+// OLAP Query 3: Slice
+app.get('/slice-peak-ccu', (req, res) => {
+    console.time('Slice Query: ');
     const query = `
-        SELECT gf.Name, g.genres, gf.metacritic_score, gf.price
+        SELECT gf.Name, g.genres, c.categories, os.os, l.supported_languages, 
+               gf.metacritic_score, gf.peak_ccu, gf.price, gf.discount
         FROM Game_Facts gf
+        JOIN Game_Categories gc ON gf.appid = gc.appid
+        JOIN Categories c ON gc.CategoryID = c.CategoryID
         JOIN Game_Genres gg ON gf.appid = gg.appid
         JOIN Genres g ON gg.GenreID = g.GenreID
-        WHERE g.genres = 'Action' AND gf.metacritic_score BETWEEN 80 AND 90
+        JOIN Game_Languages gl ON gf.appid = gl.appid
+        JOIN Languages l ON gl.LanguageID = l.LanguageID
+        JOIN Game_Operating_Systems gos ON gf.appid = gos.appid
+        JOIN Operating_Systems os ON gos.osid = os.osid
+        WHERE os.os = 'Windows' AND l.supported_languages = 'English' 
+              AND gf.metacritic_score > 75
         ORDER BY gf.metacritic_score DESC;
     `;
     db.query(query, (err, results) => {
+        console.timeEnd('Slice Query: ');
         if (err) throw err;
         res.json(results.map(row => ({
-            Name: row.Name,
-            genres: row.genres,
+            name: row.Name,
+            genre: row.genres,
+            category: row.categories,
+            os: row.os,
+            languages: row.supported_languages,
             metacritic_score: row.metacritic_score,
-            price: row.price
+            peak_ccu: row.peak_ccu,
+            price: row.price,
+            discount: row.discount
+        })));
+    });
+});
+
+// OLAP Query 4: Dice
+app.get('/dice-genre-metacritic', (req, res) => {
+    console.time('Dice Query: ');
+    const query = `
+        SELECT gf.Name, g.genres, c.categories, os.os, l.supported_languages, 
+               gf.metacritic_score, gf.positive, gf.negative, gf.achievements,
+               gf.avgplaytime_forever, gf.avgplaytime_twoweeks, gf.recommendations
+        FROM Game_Facts gf
+        JOIN Game_Categories gc ON gf.appid = gc.appid
+        JOIN Categories c ON gc.CategoryID = c.CategoryID
+        JOIN Game_Genres gg ON gf.appid = gg.appid
+        JOIN Genres g ON gg.GenreID = g.GenreID
+        JOIN Game_Languages gl ON gf.appid = gl.appid
+        JOIN Languages l ON gl.LanguageID = l.LanguageID
+        JOIN Game_Operating_Systems gos ON gf.appid = gos.appid
+        JOIN Operating_Systems os ON gos.osid = os.osid
+        WHERE g.genres IN ('Adventure', 'Action') 
+              AND c.categories IN ('Single-player', 'Multiplayer')
+              AND l.supported_languages = 'Spanish' 
+              AND os.os = 'Linux'
+        ORDER BY gf.recommendations DESC;
+    `;
+    db.query(query, (err, results) => {
+        console.timeEnd('Dice Query: ');
+        if (err) throw err;
+        res.json(results.map(row => ({
+            name: row.Name,
+            genre: row.genres,
+            category: row.categories,
+            os: row.os,
+            languages: row.supported_languages,
+            metacritic_score: row.metacritic_score,
+            positive: row.positive,
+            negative: row.negative,
+            achievements: row.achievements,
+            avgplaytime_forever: row.avgplaytime_forever,
+            avgplaytime_twoweeks: row.avgplaytime_twoweeks,
+            recommendations: row.recommendations
         })));
     });
 });
