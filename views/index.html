@@ -30,17 +30,19 @@
     <script>
         let chartInstance = null;
 
-        function displayChart(labels, data, title = 'Data', chartType = 'bar') {
-            const ctx = document.getElementById('olapChart').getContext('2d');
-            if (chartInstance) chartInstance.destroy();
+        function displayChart(labels, data, title = 'Data', chartType = 'bar', scaleFactor = 1) {
+    const ctx = document.getElementById('olapChart').getContext('2d');
+    if (chartInstance) chartInstance.destroy();
+
+    const scaledData = data.map(value => chartType === 'scatter' ? { x: value.label, y: value.value / scaleFactor } : value / scaleFactor);
 
             chartInstance = new Chart(ctx, {
                 type: chartType,
                 data: {
-                    labels: labels,
+                    labels: chartType === 'scatter' ? [] : labels, // Scatter plot doesn't need labels
                     datasets: [{
                         label: title,
-                        data: data,
+                        data: scaledData,
                         backgroundColor: 'rgba(75, 192, 192, 0.2)',
                         borderColor: 'rgba(75, 192, 192, 1)',
                         borderWidth: 1
@@ -48,6 +50,7 @@
                 },
                 options: {
                     scales: {
+                        x: chartType === 'scatter' ? { type: 'category' } : undefined,
                         y: { beginAtZero: true }
                     },
                     plugins: { legend: { display: true } }
@@ -78,52 +81,52 @@
         }
 
         function fetchData(endpoint, chartTitle, chartType = 'bar') {
-            fetch(endpoint)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.length === 0) {
-                        console.error('No data received from endpoint:', endpoint);
-                        return;
-                    }
+    fetch(endpoint)
+        .then(response => response.json())
+        .then(data => {
+            if (data.length === 0) {
+                console.error('No data received from endpoint:', endpoint);
+                return;
+            }
 
-                    // Customize the keys for each query's specific data structure
-                    let labels, values;
-                    const headers = Object.keys(data[0]);
+            let labels, values;
+            const headers = Object.keys(data[0]);
 
-                    if (endpoint === '/rollup') {
-                        labels = data.map(item => `${item.Operating_System} - ${item.Language}`);
-                        values = data.map(item => item.Average_Playtime);
-                    } else if (endpoint === '/drilldown') {
-                        labels = data.map(item => `${item.Category} - ${item.Genre}`);
-                        values = data.map(item => item.Total_Achievements);
-                    } else if (endpoint === '/slice') {
-                        labels = data.map(item => item.Name);
-                        values = data.map(item => item.Peak_Concurrent_Users);
-                    } else if (endpoint === '/dice') {
-                        labels = data.map(item => item.Name);
-                        values = data.map(item => item.metacritic_score);
-                    }
+            if (endpoint === '/rollup') {
+                labels = data.map(item => item.Game_Category);
+                values = data.map(item => ({ label: item.Game_Category, value: item.Average_Playtime }));
+            } else if (endpoint === '/drilldown') {
+                labels = data.map(item => `${item.Category} - ${item.Genre}`);
+                values = data.map(item => ({ label: `${item.Category} - ${item.Genre}`, value: item.Total_Achievements }));
+            } else if (endpoint === '/slice') {
+                labels = data.map(item => item.Name);
+                values = data.map(item => item.Peak_Concurrent_Users);
+            } else if (endpoint === '/dice') {
+                labels = data.map(item => item.Name);
+                values = data.map(item => item.metacritic_score);
+            }
 
-                    displayChart(labels, values, chartTitle, chartType);
-                    displayTable(headers, data);
-                })
-                .catch(error => console.error('Error fetching data:', error));
-        }
+            displayChart(labels, values, chartTitle, chartType);
+            displayTable(headers, data);
+        })
+        .catch(error => console.error('Error fetching data:', error));
+}
 
         document.getElementById('rollupButton').addEventListener('click', () => {
-            fetchData('/rollup', 'Average Playtime by OS and Language');
+            fetchData('/rollup', 'Average Playtime by Game Category', 'scatter', 1000); // Scale factor of 1000, for instance
+
         });
 
         document.getElementById('drilldownButton').addEventListener('click', () => {
-            fetchData('/drilldown', 'Total Achievements by Category and Genre');
+            fetchData('/drilldown', 'Total Achievements by Category and Genre', 'scatter');
         });
 
         document.getElementById('sliceButton').addEventListener('click', () => {
-            fetchData('/slice', 'Peak Concurrent Users by Game (Windows)');
+            fetchData('/slice', 'Peak Concurrent Users by Game (Windows)', 'bar');
         });
 
         document.getElementById('diceButton').addEventListener('click', () => {
-            fetchData('/dice', 'Metacritic Score for Action Games (80-90)');
+            fetchData('/dice', 'Metacritic Score for Action Games (80-90)', 'bar');
         });
     </script>
 
