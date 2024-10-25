@@ -12,59 +12,28 @@
     <h1>Steam Games OLAP Dashboard</h1>
 
     <div class="chart-buttons">
-        <button id="rollupGenresButton">Roll-up: Game Insights by Category and Genre</button>
-        <button id="drilldownGamesByGenreButton">Drill-down: Game Breakdown by Genre, Language, and OS</button>
-        <button id="slicePeakCCUButton">Slice: Analysis of Windows Games in English with High Metacritic Scores</button>
-        <button id="diceGenreMetacriticButton">Dice: Filtering Games by Genre, Category, Language, and Operating System</button>
+        <button id="rollupButton">Roll-up</button>
+        <button id="drilldownButton">Drill-down</button>
+        <button id="sliceButton">Slice</button>
+        <button id="diceButton">Dice</button>
     </div>
 
     <div id="chartTableContainer">
-        <!-- Chart Section -->
         <div id="chartContainer">
             <canvas id="olapChart"></canvas>
         </div>
-
-        <!-- Table Section -->
         <div id="tableContainer">
-            <table id="olapTable">
-                <!-- Table will be dynamically generated here -->
-            </table>
+            <table id="olapTable"></table>
         </div>
     </div>
 
     <script>
         let chartInstance = null;
 
-        // function to display table data
-        function displayTable(headers, data) {
-            const table = document.getElementById('olapTable');
-            table.innerHTML = ''; 
-
-            const headerRow = document.createElement('tr');
-            headers.forEach(header => {
-                const th = document.createElement('th');
-                th.textContent = header;
-                headerRow.appendChild(th);
-            });
-            table.appendChild(headerRow);
-
-            data.forEach(row => {
-                const tr = document.createElement('tr');
-                Object.values(row).forEach(value => {
-                    const td = document.createElement('td');
-                    td.textContent = value;
-                    tr.appendChild(td);
-                });
-                table.appendChild(tr);
-            });
-        }
-
-        // function to display the chart
-        function displayChart(labels, data, title, chartType = 'bar') {
+        function displayChart(labels, data, title = 'Data', chartType = 'bar') {
             const ctx = document.getElementById('olapChart').getContext('2d');
-            if (chartInstance) {
-                chartInstance.destroy();
-            }
+            if (chartInstance) chartInstance.destroy();
+
             chartInstance = new Chart(ctx, {
                 type: chartType,
                 data: {
@@ -81,66 +50,62 @@
                     scales: {
                         y: { beginAtZero: true }
                     },
-                    plugins: {
-                        legend: { display: false }
-                    }
+                    plugins: { legend: { display: true } }
                 }
             });
         }
 
-        // Fetch and display Roll-up query
-        document.getElementById('rollupGenresButton').addEventListener('click', () => {
-            fetch('/rollup-genres')
+        function displayTable(headers, data) {
+            const table = document.getElementById('olapTable');
+            table.innerHTML = '';
+            const headerRow = document.createElement('tr');
+            headers.forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header;
+                headerRow.appendChild(th);
+            });
+            table.appendChild(headerRow);
+
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                headers.forEach(header => {
+                    const td = document.createElement('td');
+                    td.textContent = row[header];
+                    tr.appendChild(td);
+                });
+                table.appendChild(tr);
+            });
+        }
+
+        function fetchData(endpoint, chartTitle, chartType = 'bar') {
+            fetch(endpoint)
                 .then(response => response.json())
                 .then(data => {
-                    const labels = data.map(item => `${item.category} - ${item.genre}`);
-                    const totalGames = data.map(item => item.total_games);
-
-                    displayChart(labels, totalGames, 'Total Games by Category and Genre', 'bar');
-                    displayTable(['Category', 'Genre', 'Total Games', 'Avg Price', 'Total Owners', 'Positive Reviews', 'Negative Reviews'], data);
+                    const labels = data.map(item => item[Object.keys(item)[0]]);
+                    const values = data.map(item => item[Object.keys(item)[1]]);
+                    const headers = Object.keys(data[0]);
+                    
+                    displayChart(labels, values, chartTitle, chartType);
+                    displayTable(headers, data);
                 });
+        }
+
+        document.getElementById('rollupButton').addEventListener('click', () => {
+            fetchData('/rollup', 'Average Playtime by OS and Language');
         });
 
-        // Fetch and display Drill-down query
-        document.getElementById('drilldownGamesByGenreButton').addEventListener('click', () => {
-            fetch('/drilldown-games-by-genre')
-                .then(response => response.json())
-                .then(data => {
-                    const labels = data.map(item => item.Name);
-                    const peakCcu = data.map(item => item.peak_ccu);
-
-                    displayChart(labels, peakCcu, 'Peak Concurrent Users by Game', 'line');
-                    displayTable(['Name', 'Genre', 'Category', 'Languages', 'OS', 'Peak CCU', 'Metacritic Score', 'Release Date', 'DLC Count'], data);
-                });
+        document.getElementById('drilldownButton').addEventListener('click', () => {
+            fetchData('/drilldown', 'Total Achievements by Category and Genre');
         });
 
-        // Fetch and display Slice query
-        document.getElementById('slicePeakCCUButton').addEventListener('click', () => {
-            fetch('/slice-peak-ccu')
-                .then(response => response.json())
-                .then(data => {
-                    const labels = data.map(item => item.Name);
-                    const metacriticScores = data.map(item => item.metacritic_score);
-
-                    displayChart(labels, metacriticScores, 'Metacritic Scores for Windows Games', 'bar');
-                    displayTable(['Name', 'Genre', 'Category', 'OS', 'Languages', 'Metacritic Score', 'Peak CCU', 'Price', 'Discount'], data);
-                });
+        document.getElementById('sliceButton').addEventListener('click', () => {
+            fetchData('/slice', 'Peak Concurrent Users by Game (Windows)');
         });
 
-        // Fetch and display Dice query
-        document.getElementById('diceGenreMetacriticButton').addEventListener('click', () => {
-            fetch('/dice-genre-metacritic')
-                .then(response => response.json())
-                .then(data => {
-                    const labels = data.map(item => item.Name);
-                    const recommendations = data.map(item => item.recommendations);
-
-                    displayChart(labels, recommendations, 'Recommendations for Filtered Games', 'bar');
-                    displayTable(['Name', 'Genre', 'Category', 'OS', 'Languages', 'Metacritic Score', 'Positive', 'Negative', 'Achievements', 'Avg Playtime Forever', 'Avg Playtime Two Weeks', 'Recommendations'], data);
-                });
+        document.getElementById('diceButton').addEventListener('click', () => {
+            fetchData('/dice', 'Metacritic Score for Action Games (80-90)');
         });
     </script>
 
 </body>
-
 </html>
