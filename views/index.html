@@ -12,10 +12,12 @@
     <h1>Steam Games OLAP Dashboard</h1>
 
     <div class="chart-buttons">
-        <button id="rollupButton">Roll-up</button>
-        <button id="drilldownButton">Drill-down</button>
-        <button id="sliceButton">Slice</button>
-        <button id="diceButton">Dice</button>
+        <button id="rollupButton">Roll-up: Total Price of Games by Genre above 10,000</button>
+        <button id="drilldownButton">Drill-down: Total Achievements above 1,000 for Games by Category and Language</button>
+    </div>
+    <div class="chart-buttons">
+        <button id="sliceButton">Slice: Peak Concurrent Users above 20,000 by Game on Windows</button>
+        <button id="diceButton">Dice: Metacritic Score for Action Games between 60-70</button>
     </div>
 
     <div id="chartTableContainer">
@@ -28,35 +30,6 @@
     </div>
 
     <script>
-        let chartInstance = null;
-
-        function displayChart(labels, data, title = 'Data', chartType = 'bar', scaleFactor = 1) {
-    const ctx = document.getElementById('olapChart').getContext('2d');
-    if (chartInstance) chartInstance.destroy();
-
-    const scaledData = data.map(value => chartType === 'scatter' ? { x: value.label, y: value.value / scaleFactor } : value / scaleFactor);
-
-            chartInstance = new Chart(ctx, {
-                type: chartType,
-                data: {
-                    labels: chartType === 'scatter' ? [] : labels, // Scatter plot doesn't need labels
-                    datasets: [{
-                        label: title,
-                        data: scaledData,
-                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                        borderColor: 'rgba(75, 192, 192, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    scales: {
-                        x: chartType === 'scatter' ? { type: 'category' } : undefined,
-                        y: { beginAtZero: true }
-                    },
-                    plugins: { legend: { display: true } }
-                }
-            });
-        }
 
         function displayTable(headers, data) {
             const table = document.getElementById('olapTable');
@@ -80,54 +53,117 @@
             });
         }
 
-        function fetchData(endpoint, chartTitle, chartType = 'bar') {
-    fetch(endpoint)
-        .then(response => response.json())
-        .then(data => {
-            if (data.length === 0) {
-                console.error('No data received from endpoint:', endpoint);
-                return;
+        let chartInstance; 
+
+        function generateDistinctColors(numColors) {
+            const colors = [];
+            for (let i = 0; i < numColors; i++) {
+                const hue = (i * 360 / numColors) % 360;
+                const saturation = Math.floor(Math.random() * 40) + 60; 
+                const lightness = Math.floor(Math.random() * 40) + 30; 
+                colors.push(`hsl(${hue}, ${saturation}%, ${lightness}%)`);
+            }
+            return colors;
+        }
+
+        function displayChart(labels, data, title = 'Data', chartType) {
+            const ctx = document.getElementById('olapChart').getContext('2d');
+
+            if (chartInstance) {
+                chartInstance.destroy();
             }
 
-            let labels, values;
-            const headers = Object.keys(data[0]);
+            const backgroundColors = generateDistinctColors(data.length);
 
-            if (endpoint === '/rollup') {
-                labels = data.map(item => item.Game_Category);
-                values = data.map(item => ({ label: item.Game_Category, value: item.Average_Playtime }));
-            } else if (endpoint === '/drilldown') {
-                labels = data.map(item => `${item.Category} - ${item.Genre}`);
-                values = data.map(item => ({ label: `${item.Category} - ${item.Genre}`, value: item.Total_Achievements }));
-            } else if (endpoint === '/slice') {
-                labels = data.map(item => item.Name);
-                values = data.map(item => item.Peak_Concurrent_Users);
-            } else if (endpoint === '/dice') {
-                labels = data.map(item => item.Name);
-                values = data.map(item => item.metacritic_score);
-            }
+            chartInstance = new Chart(ctx, {
+                type: chartType, 
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: title,
+                        data: data,
+                        backgroundColor: backgroundColors,
+                        borderColor: backgroundColors.map(color => color.replace(/0.7/, '1')), 
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', 
+                    scales: {
+                        x: { 
+                            beginAtZero: true, 
+                        }, 
+                        y: { 
+                            beginAtZero: true,
+                        }
+                    },
+                    plugins: { 
+                        legend: { display: true } 
+                    }
+                }
+            });
+        }
 
-            displayChart(labels, values, chartTitle, chartType);
-            displayTable(headers, data);
-        })
-        .catch(error => console.error('Error fetching data:', error));
-}
+        function fetchData(endpoint, chartTitle, chartType) {
+            console.log(`Fetching data from: ${endpoint}`); 
+            fetch(endpoint)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Data received:', data); 
+                    if (data.length === 0) {
+                        console.error('No data received from endpoint:', endpoint);
+                        return;
+                    }
 
-        document.getElementById('rollupButton').addEventListener('click', () => {
-            fetchData('/rollup', 'Average Playtime by Game Category', 'scatter', 1000); // Scale factor of 1000, for instance
+                    let labels, values;
+                    const headers = Object.keys(data[0]);
 
+                    if (endpoint === '/rollup') {
+                        labels = data.map(item => item.Genre); 
+                        values = data.map(item => item.Total_Price); 
+                    } else if (endpoint === '/drilldown') {
+                        labels = data.map(item => item.Name); 
+                        values = data.map(item => item.Total_Achievements); 
+                    } else if (endpoint === '/slice') {
+                        labels = data.map(item => item.Name); 
+                        values = data.map(item => item.Peak_Concurrent_Users); 
+                    } else if (endpoint === '/dice') {
+                        labels = data.map(item => item.Name); 
+                        values = data.map(item => item.metacritic_score);
+                    }
+
+                    displayChart(labels, values, chartTitle, chartType);
+                    displayTable(headers, data);
+                })
+                .catch(error => console.error('Error fetching data:', error));
+        }
+
+
+        document.querySelectorAll('.chart-buttons button').forEach(button => {
+            button.addEventListener('click', () => {
+                document.querySelectorAll('.chart-buttons button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+
+                button.classList.add('active');
+
+                if (button.id === 'rollupButton') {
+                    fetchData('/rollup', 'Total Price of Games by Genre', 'bar');
+                } else if (button.id === 'drilldownButton') {
+                    fetchData('/drilldown', 'Total Achievements for Games by Category and Language', 'bar');
+                } else if (button.id === 'sliceButton') {
+                    fetchData('/slice', 'Peak Concurrent Usersby Game supported in Windows', 'bar');
+                } else if (button.id === 'diceButton') {
+                    fetchData('/dice', 'Metacritic Score for Action Games', 'bar');
+                }
+            });
         });
 
-        document.getElementById('drilldownButton').addEventListener('click', () => {
-            fetchData('/drilldown', 'Total Achievements by Category and Genre', 'scatter');
-        });
-
-        document.getElementById('sliceButton').addEventListener('click', () => {
-            fetchData('/slice', 'Peak Concurrent Users by Game (Windows)', 'bar');
-        });
-
-        document.getElementById('diceButton').addEventListener('click', () => {
-            fetchData('/dice', 'Metacritic Score for Action Games (80-90)', 'bar');
-        });
     </script>
 
 </body>

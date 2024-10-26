@@ -32,17 +32,17 @@ app.get('/', (req, res) => {
 app.get('/rollup', (req, res) => {
     console.time('Rollup Query');
     const query = `
-    SELECT c.categories AS Game_Category, ROUND(SUM(gf.avgplaytime_forever) / 1000, 2) AS Average_Playtime
-    FROM Game_Facts gf
-    JOIN Game_Categories gc ON gf.appid = gc.appid
-    JOIN Categories c ON gc.CategoryID = c.CategoryID
-    GROUP BY c.categories
-    ORDER BY Average_Playtime DESC; `;
+        SELECT g.genres AS Genre, ROUND(SUM(gf.price), 2) AS Total_Price
+        FROM Game_Facts gf
+        JOIN Game_Genres gg ON gf.appid = gg.appid
+        JOIN Genres g ON gg.GenreID = g.GenreID
+        GROUP BY g.genres
+        HAVING Total_Price > 10000
+        ORDER BY Total_Price DESC;
+    `;
     db.query(query, (err, results) => {
         console.timeEnd('Rollup Query');
         if (err) throw err;
-
-
         res.json(results);
     });
 });
@@ -51,14 +51,16 @@ app.get('/rollup', (req, res) => {
 app.get('/drilldown', (req, res) => {
     console.time('Drilldown Query');
     const query = `
-        SELECT      cat.categories AS Category, gen.genres AS Genre, SUM(gf.achievements) AS Total_Achievements
-        FROM        Game_Facts gf
-        JOIN        Game_Categories gc ON gf.appid = gc.appid
-        JOIN        Categories cat ON gc.CategoryID = cat.CategoryID
-        JOIN        Game_Genres gg ON gf.appid = gg.appid
-        JOIN        Genres gen ON gg.GenreID = gen.GenreID
-        GROUP BY    cat.categories, gen.genres
-        ORDER BY    Total_Achievements DESC;
+        SELECT gf.Name, cat.categories AS Category, lang.supported_languages AS Language, SUM(gf.achievements) AS Total_Achievements
+        FROM Game_Facts gf
+        JOIN Game_Categories gc ON gf.appid = gc.appid
+        JOIN Categories cat ON gc.CategoryID = cat.CategoryID
+        JOIN Game_Languages gl ON gf.appid = gl.appid
+        JOIN Languages lang ON gl.LanguageID = lang.LanguageID
+        WHERE gf.achievements > 0
+        GROUP BY gf.Name, cat.categories, lang.supported_languages
+        HAVING Total_Achievements > 1000 
+        ORDER BY Total_Achievements DESC;
     `; 
     db.query(query, (err, results) => {
         console.timeEnd('Drilldown Query');
@@ -71,12 +73,12 @@ app.get('/drilldown', (req, res) => {
 app.get('/slice', (req, res) => {
     console.time('Slice Query');
     const query = `
-        SELECT      gf.Name, gf.peak_ccu AS Peak_Concurrent_Users, os.os AS Operating_System
-        FROM        Game_Facts gf
-        JOIN        Game_Operating_Systems gos ON gf.appid = gos.appid
-        JOIN        Operating_Systems os ON gos.osid = os.osid
-        WHERE       gf.peak_ccu > 10000 AND os.os = 'Windows'
-		ORDER BY    gf.peak_ccu DESC;
+        SELECT gf.Name, gf.peak_ccu AS Peak_Concurrent_Users, os.os AS Operating_System
+        FROM Game_Facts gf
+        JOIN Game_Operating_Systems gos ON gf.appid = gos.appid
+        JOIN Operating_Systems os ON gos.osid = os.osid
+        WHERE gf.peak_ccu > 20000 AND os.os = 'Windows' 
+        ORDER BY gf.peak_ccu DESC;
     `;
     db.query(query, (err, results) => {
         console.timeEnd('Slice Query');
@@ -89,12 +91,12 @@ app.get('/slice', (req, res) => {
 app.get('/dice', (req, res) => {
     console.time('Dice Query');
     const query = `
-        SELECT      gf.Name, g.genres, gf.metacritic_score, gf.price
-        FROM        Game_Facts gf
-        JOIN        Game_Genres gg ON gf.appid = gg.appid
-        JOIN        Genres g ON gg.GenreID = g.GenreID
-        WHERE       g.genres = 'Action' AND gf.metacritic_score BETWEEN 80 AND 90
-        ORDER BY    gf.metacritic_score DESC;
+        SELECT gf.Name, g.genres, gf.metacritic_score
+        FROM Game_Facts gf
+        JOIN Game_Genres gg ON gf.appid = gg.appid
+        JOIN Genres g ON gg.GenreID = g.GenreID
+        WHERE g.genres = 'Action' AND gf.metacritic_score BETWEEN 60 AND 70
+        ORDER BY gf.metacritic_score DESC;
     `; 
     db.query(query, (err, results) => {
         console.timeEnd('Dice Query');

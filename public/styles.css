@@ -35,9 +35,8 @@ button:hover {
     transform: scale(1.05); 
 }
 
-button:active {
-    background-color: #FEF9F2; 
-    color: black;
+.active {
+    background-color: #697565;
 }
 
 @media (max-width: 600px) {
