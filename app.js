@@ -32,18 +32,20 @@ app.get('/', (req, res) => {
 app.get('/rollup', (req, res) => {
     console.time('Rollup Query');
     const query = `
-        SELECT      os.os AS Operating_System, lang.supported_languages AS Language,ROUND(AVG(gf.avgplaytime_forever), 2) AS Average_Playtime
-        FROM        Game_Facts gf
-        JOIN        Game_Operating_Systems gos ON gf.appid = gos.appid
-        JOIN        Operating_Systems os ON gos.osid = os.osid
-        JOIN        Game_Languages gl ON gf.appid = gl.appid
-        JOIN        Languages lang ON gl.LanguageID = lang.LanguageID
-        GROUP BY    os.os, lang.supported_languages
-        ORDER BY    Average_Playtime DESC;
-    `; 
+        SELECT os.os AS Operating_System, lang.supported_languages AS Language, ROUND(AVG(gf.avgplaytime_forever), 2) AS Average_Playtime
+        FROM Game_Facts gf
+        JOIN Game_Operating_Systems gos ON gf.appid = gos.appid
+        JOIN Operating_Systems os ON gos.osid = os.osid
+        JOIN Game_Languages gl ON gf.appid = gl.appid
+        JOIN Languages lang ON gl.LanguageID = lang.LanguageID
+        GROUP BY os.os, lang.supported_languages
+        ORDER BY Average_Playtime DESC;
+    `;
     db.query(query, (err, results) => {
         console.timeEnd('Rollup Query');
         if (err) throw err;
+
+
         res.json(results);
     });
 });
