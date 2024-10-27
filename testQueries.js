@@ -2,11 +2,11 @@ const mysql = require('mysql2');
 require('dotenv').config();
 
 // Get parameters from command line arguments
-const rollupThreshold = process.argv[2] || 10000;  // Default to 10000 if not provided
-const drilldownThreshold = process.argv[3] || 1000;  // Default to 1000 if not provided
-const sliceCCU = process.argv[4] || 20000;           // Default to 20000 if not provided
-const diceMetacriticMin = process.argv[5] || 60;     // Default to 60 if not provided
-const diceMetacriticMax = process.argv[6] || 70;     // Default to 70 if not provided
+const rollupThreshold = process.argv[2] || 10000;  
+const drilldownThreshold = process.argv[3] || 1000;  
+const sliceCCU = process.argv[4] || 20000;           
+const diceMetacriticMin = process.argv[5] || 60;     
+const diceMetacriticMax = process.argv[6] || 70;     
 
 const db = mysql.createConnection({
     host: process.env.DB_HOST,
@@ -40,7 +40,7 @@ const testRollup = async () => {
         HAVING Total_Price > ?
         ORDER BY Total_Price DESC;
     `;
-    for (let i = 0; i < 2; i++) { // Run 2 times
+    for (let i = 0; i < 2; i++) { 
         const startTime = Date.now();
         db.query(query, [rollupThreshold], (err, results) => {
             const executionTime = Date.now() - startTime;
@@ -64,7 +64,7 @@ const testDrilldown = async () => {
         HAVING Total_Achievements > ?
         ORDER BY Total_Achievements DESC;
     `;
-    for (let i = 0; i < 2; i++) { // Run 2 times
+    for (let i = 0; i < 2; i++) { 
         const startTime = Date.now();
         db.query(query, [drilldownThreshold], (err, results) => {
             const executionTime = Date.now() - startTime;
@@ -84,7 +84,7 @@ const testSlice = async () => {
         WHERE gf.peak_ccu > ? AND os.os = 'Windows' 
         ORDER BY gf.peak_ccu DESC;
     `;
-    for (let i = 0; i < 2; i++) { // Run 2 times
+    for (let i = 0; i < 2; i++) { 
         const startTime = Date.now();
         db.query(query, [sliceCCU], (err, results) => {
             const executionTime = Date.now() - startTime;
@@ -104,7 +104,7 @@ const testDice = async () => {
         WHERE g.genres = 'Action' AND gf.metacritic_score BETWEEN ? AND ?
         ORDER BY gf.metacritic_score DESC;
     `;
-    for (let i = 0; i < 2; i++) { // Run 2 times
+    for (let i = 0; i < 2; i++) { 
         const startTime = Date.now();
         db.query(query, [diceMetacriticMin, diceMetacriticMax], (err, results) => {
             const executionTime = Date.now() - startTime;
@@ -120,7 +120,7 @@ const runTests = async () => {
     await testDrilldown();
     await testSlice();
     await testDice();
-    db.end(); // Close the database connection
+    db.end(); 
 };
 
 runTests();
