@@ -36,9 +36,11 @@ app.get('/rollup', (req, res) => {
         FROM Game_Facts gf
         JOIN Game_Genres gg ON gf.appid = gg.appid
         JOIN Genres g ON gg.GenreID = g.GenreID
+        WHERE gf.price IS NOT NULL 
         GROUP BY g.genres
         HAVING Total_Price > 10000
         ORDER BY Total_Price DESC;
+
     `;
     db.query(query, (err, results) => {
         console.timeEnd('Rollup Query');
